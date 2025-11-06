@@ -8,6 +8,7 @@ const petRoutes = require('./routes/pets');
 const applicationRoutes = require('./routes/applications');
 const userRoutes = require('./routes/users');
 const shelterRoutes = require('./routes/shelters');
+const seedRoutes = require('./routes/seed');
 
 // Create Express app
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api/pets', petRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/shelters', shelterRoutes);
+app.use('/api/seed', seedRoutes);
 
 // Welcome route
 app.get('/', (req, res) => {
@@ -53,6 +55,7 @@ app.get('/', (req, res) => {
       applications: '/api/applications',
       users: '/api/users',
       shelters: '/api/shelters',
+      seed: '/api/seed',
     },
   });
 });
