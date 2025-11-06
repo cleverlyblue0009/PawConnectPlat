@@ -69,10 +69,23 @@ const searchPets = async (filters = {}) => {
     expressionAttributeValues[':status'] = 'available';
   }
 
-  // Species filter
+  // Species filter (handle single or comma-separated values)
   if (filters.species) {
-    filterParts.push('species = :species');
-    expressionAttributeValues[':species'] = filters.species;
+    const speciesArray = typeof filters.species === 'string' 
+      ? filters.species.split(',').map(s => s.trim())
+      : [filters.species];
+    
+    if (speciesArray.length === 1) {
+      filterParts.push('species = :species');
+      expressionAttributeValues[':species'] = speciesArray[0];
+    } else {
+      // For multiple species, we need to use OR conditions
+      const speciesConditions = speciesArray.map((_, idx) => `species = :species${idx}`);
+      filterParts.push(`(${speciesConditions.join(' OR ')})`);
+      speciesArray.forEach((species, idx) => {
+        expressionAttributeValues[`:species${idx}`] = species;
+      });
+    }
   }
 
   // Gender filter
