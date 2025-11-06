@@ -121,12 +121,25 @@ const updatePet = asyncHandler(async (req, res) => {
     return errorResponse(res, 'Unauthorized to update this pet', 403);
   }
 
-  // Handle new image uploads if provided
+  // Handle image updates
   let updates = { ...req.body };
   
+  // Parse existingImages if provided (from frontend)
+  let existingImages = [];
+  if (updates.existingImages) {
+    existingImages = typeof updates.existingImages === 'string' 
+      ? JSON.parse(updates.existingImages) 
+      : updates.existingImages;
+    delete updates.existingImages; // Remove from updates as it's not a DB field
+  }
+
+  // Handle new image uploads
   if (req.files && req.files.length > 0) {
     const newImageUrls = await uploadMultipleToS3(req.files, 'pets');
-    updates.images = [...(pet.images || []), ...newImageUrls];
+    updates.images = [...existingImages, ...newImageUrls];
+  } else if (existingImages.length > 0) {
+    // Only update with existing images if no new files uploaded
+    updates.images = existingImages;
   }
 
   if (updates.characteristics && typeof updates.characteristics === 'string') {

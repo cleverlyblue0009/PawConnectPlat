@@ -10,6 +10,8 @@ import PetDetails from './components/PetDetails';
 import AdoptionForm from './components/AdoptionForm';
 import Dashboard from './components/Dashboard';
 import AuthPage from './components/AuthPage';
+import AddPet from './components/AddPet';
+import EditPet from './components/EditPet';
 
 // Placeholder components for other routes
 const About = () => (
@@ -170,6 +172,8 @@ function App() {
               <Route path="/apply/:petId" element={<AdoptionForm />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/add-pet" element={<AddPet />} />
+              <Route path="/edit-pet/:petId" element={<EditPet />} />
               <Route path="/about" element={<About />} />
               <Route path="/shelters" element={<Shelters />} />
               <Route path="/contact" element={<Contact />} />
