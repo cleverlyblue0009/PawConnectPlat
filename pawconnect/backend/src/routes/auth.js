@@ -7,10 +7,9 @@ const { registerValidation, loginValidation, validate } = require('../utils/vali
 // Public routes
 router.post('/register', registerValidation, validate, authController.register);
 router.post('/login', loginValidation, validate, authController.login);
-router.post('/refresh-token', authController.refreshToken);
 
 // Protected routes
-router.get('/verify', authenticate, authController.verifyToken);
-router.get('/logout', authenticate, authController.logout);
+router.get('/verify', authenticate, authController.verifyUser);
+router.get('/logout', authController.logout);
 
 module.exports = router;

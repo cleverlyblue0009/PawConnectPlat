@@ -1,26 +1,21 @@
-const jwt = require('jsonwebtoken');
 const { errorResponse } = require('../utils/responseHandler');
 const userModel = require('../models/userModel');
 
 /**
- * Verify JWT token and authenticate user
+ * Simple authentication middleware
+ * Expects userId in request header
  */
 const authenticate = async (req, res, next) => {
   try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
+    // Get userId from header
+    const userId = req.headers['x-user-id'];
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return errorResponse(res, 'No token provided', 401);
+    if (!userId) {
+      return errorResponse(res, 'User ID required', 401);
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
     // Get user from database
-    const user = await userModel.findById(decoded.userId);
+    const user = await userModel.findById(userId);
 
     if (!user) {
       return errorResponse(res, 'User not found', 401);
@@ -30,12 +25,6 @@ const authenticate = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return errorResponse(res, 'Invalid token', 401);
-    }
-    if (error.name === 'TokenExpiredError') {
-      return errorResponse(res, 'Token expired', 401);
-    }
     return errorResponse(res, 'Authentication failed', 401);
   }
 };
@@ -61,16 +50,14 @@ const isAdopter = (req, res, next) => {
 };
 
 /**
- * Optional authentication - doesn't fail if no token
+ * Optional authentication - doesn't fail if no userId
  */
 const optionalAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    const userId = req.headers['x-user-id'];
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await userModel.findById(decoded.userId);
+    if (userId) {
+      const user = await userModel.findById(userId);
       
       if (user) {
         req.user = user;
@@ -83,45 +70,9 @@ const optionalAuth = async (req, res, next) => {
   next();
 };
 
-/**
- * Generate JWT token
- */
-const generateToken = (userId, userType) => {
-  return jwt.sign(
-    { userId, userType },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-  );
-};
-
-/**
- * Generate refresh token
- */
-const generateRefreshToken = (userId, userType) => {
-  return jwt.sign(
-    { userId, userType },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
-  );
-};
-
-/**
- * Verify refresh token
- */
-const verifyRefreshToken = (token) => {
-  try {
-    return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-  } catch (error) {
-    throw new Error('Invalid refresh token');
-  }
-};
-
 module.exports = {
   authenticate,
   isShelter,
   isAdopter,
   optionalAuth,
-  generateToken,
-  generateRefreshToken,
-  verifyRefreshToken,
 };

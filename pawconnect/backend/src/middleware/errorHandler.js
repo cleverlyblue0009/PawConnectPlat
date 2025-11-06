@@ -19,16 +19,6 @@ const errorHandler = (err, req, res, next) => {
     message = 'Unauthorized';
   }
 
-  if (err.name === 'JsonWebTokenError') {
-    statusCode = 401;
-    message = 'Invalid token';
-  }
-
-  if (err.name === 'TokenExpiredError') {
-    statusCode = 401;
-    message = 'Token expired';
-  }
-
   // DynamoDB errors
   if (err.name === 'ResourceNotFoundException') {
     statusCode = 404;
