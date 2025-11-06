@@ -21,7 +21,6 @@ const uploadToS3 = async (fileBuffer, fileName, mimeType, folder = 'pets') => {
       Key: uniqueFileName,
       Body: fileBuffer,
       ContentType: mimeType,
-      ACL: 'public-read',
     });
 
     await s3Client.send(command);
