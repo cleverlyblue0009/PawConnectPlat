@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "seed": "node -r dotenv/config src/scripts/setupDefaultData.js",
+    "seed:dev": "node -r dotenv/config src/scripts/setupDefaultData.js && npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": ["pet", "adoption", "animal", "shelter"],

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Import routes
@@ -25,6 +26,10 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve frontend static files
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendPath));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -43,7 +48,7 @@ app.use('/api/shelters', shelterRoutes);
 app.use('/api/seed', seedRoutes);
 
 // Welcome route
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.json({
     success: true,
     message: 'Welcome to PawConnect API',
@@ -58,6 +63,11 @@ app.get('/', (req, res) => {
       seed: '/api/seed',
     },
   });
+});
+
+// Serve React app for all other routes (SPA routing)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // 404 handler

@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { petsAPI } from '../services/api';
 import Loading from './common/Loading';
 
 const AddPet = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isShelter } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
 
@@ -17,24 +16,16 @@ const AddPet = () => {
     species: 'dog',
     breed: '',
     age: '',
+    weight: '',
     gender: 'male',
-    size: 'medium',
     description: '',
-    healthInfo: '',
-    adoptionFee: '',
-    adoptionStatus: 'available',
+    shortDescription: '',
     city: '',
     state: '',
     characteristics: [],
   });
 
   const [characteristicInput, setCharacteristicInput] = useState('');
-
-  useEffect(() => {
-    if (!isAuthenticated || !isShelter) {
-      navigate('/auth?mode=login');
-    }
-  }, [isAuthenticated, isShelter]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -43,8 +34,8 @@ const AddPet = () => {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length + imageFiles.length > 5) {
-      setError('Maximum 5 images allowed');
+    if (files.length + imageFiles.length > 10) {
+      setError('Maximum 10 images allowed');
       return;
     }
 
@@ -85,6 +76,7 @@ const AddPet = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
@@ -95,8 +87,20 @@ const AddPet = () => {
         return;
       }
 
-      if (!formData.name || !formData.breed || !formData.age) {
+      if (!formData.name || !formData.breed || !formData.age || !formData.weight) {
         setError('Please fill in all required fields');
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.city || !formData.state) {
+        setError('Please enter location details');
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.description) {
+        setError('Please enter a description');
         setLoading(false);
         return;
       }
@@ -105,49 +109,59 @@ const AddPet = () => {
       const data = new FormData();
       
       // Add all form fields
-      Object.keys(formData).forEach((key) => {
-        if (key === 'characteristics') {
-          data.append(key, JSON.stringify(formData[key]));
-        } else {
-          data.append(key, formData[key]);
-        }
-      });
+      data.append('name', formData.name);
+      data.append('species', formData.species);
+      data.append('breed', formData.breed);
+      data.append('age', parseInt(formData.age));
+      data.append('weight', parseInt(formData.weight));
+      data.append('gender', formData.gender);
+      data.append('description', formData.description);
+      data.append('shortDescription', formData.shortDescription || formData.description.substring(0, 100));
+      data.append('city', formData.city);
+      data.append('state', formData.state);
+      data.append('characteristics', JSON.stringify(formData.characteristics));
+      data.append('adoptionStatus', 'available');
 
       // Add images
       imageFiles.forEach((file) => {
         data.append('images', file);
       });
 
+      console.log('📤 Submitting pet data...');
+
       // Submit to API
       const response = await petsAPI.create(data);
       
-      // Redirect to pet details or dashboard
-      navigate('/dashboard');
+      console.log('✅ Pet created successfully:', response);
+      
+      setSuccess('Pet added successfully!');
+      
+      // Redirect after 2 seconds
+      setTimeout(() => {
+        navigate('/browse');
+      }, 2000);
+
     } catch (err) {
-      console.error('Error creating pet:', err);
+      console.error('❌ Error creating pet:', err);
       setError(err.message || 'Failed to add pet. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isAuthenticated || !isShelter) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container-custom max-w-4xl">
+      <div className="container mx-auto max-w-4xl px-4">
         <div className="bg-white rounded-xl shadow-md p-8">
           <div className="mb-8">
             <button
-              onClick={() => navigate('/dashboard')}
-              className="text-rust hover:text-rust-600 font-medium mb-4 flex items-center gap-2"
+              onClick={() => navigate('/browse')}
+              className="text-amber-700 hover:text-amber-900 font-medium mb-4 flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Dashboard
+              Back to Browse
             </button>
             <h1 className="text-3xl font-bold text-gray-900">Add New Pet</h1>
             <p className="text-gray-600 mt-2">Fill in the details to list a new pet for adoption</p>
@@ -155,7 +169,13 @@ const AddPet = () => {
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-              {error}
+              ❌ {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+              ✅ {success}
             </div>
           )}
 
@@ -165,7 +185,7 @@ const AddPet = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Images <span className="text-red-500">*</span>
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-amber-700 transition-colors">
                 <input
                   type="file"
                   accept="image/*"
@@ -181,7 +201,7 @@ const AddPet = () => {
                     </svg>
                   </div>
                   <p className="text-sm text-gray-600">
-                    Click to upload images (max 5) or drag and drop
+                    Click to upload images (max 10) or drag and drop
                   </p>
                   <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB each</p>
                 </label>
@@ -222,7 +242,7 @@ const AddPet = () => {
                   value={formData.name}
                   onChange={handleInputChange}
                   required
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
                   placeholder="Pet's name"
                 />
               </div>
@@ -236,7 +256,7 @@ const AddPet = () => {
                   value={formData.species}
                   onChange={handleInputChange}
                   required
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
                 >
                   <option value="dog">Dog</option>
                   <option value="cat">Cat</option>
@@ -254,7 +274,7 @@ const AddPet = () => {
                   value={formData.breed}
                   onChange={handleInputChange}
                   required
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
                   placeholder="e.g., Golden Retriever"
                 />
               </div>
@@ -272,8 +292,25 @@ const AddPet = () => {
                   min="0"
                   max="30"
                   step="0.5"
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
                   placeholder="Age in years"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Weight (lbs) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="weight"
+                  value={formData.weight}
+                  onChange={handleInputChange}
+                  required
+                  min="0"
+                  max="300"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
+                  placeholder="Weight in pounds"
                 />
               </div>
 
@@ -286,28 +323,10 @@ const AddPet = () => {
                   value={formData.gender}
                   onChange={handleInputChange}
                   required
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
                 >
                   <option value="male">Male</option>
                   <option value="female">Female</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Size <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="size"
-                  value={formData.size}
-                  onChange={handleInputChange}
-                  required
-                  className="input-field"
-                >
-                  <option value="small">Small (0-20 lbs)</option>
-                  <option value="medium">Medium (21-50 lbs)</option>
-                  <option value="large">Large (51-100 lbs)</option>
-                  <option value="extra-large">Extra Large (100+ lbs)</option>
                 </select>
               </div>
             </div>
@@ -323,23 +342,8 @@ const AddPet = () => {
                 onChange={handleInputChange}
                 required
                 rows="4"
-                className="input-field"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
                 placeholder="Tell potential adopters about this pet's personality, habits, and what makes them special..."
-              />
-            </div>
-
-            {/* Health Information */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Health Information
-              </label>
-              <textarea
-                name="healthInfo"
-                value={formData.healthInfo}
-                onChange={handleInputChange}
-                rows="3"
-                className="input-field"
-                placeholder="Vaccination status, medical history, special needs..."
               />
             </div>
 
@@ -359,13 +363,13 @@ const AddPet = () => {
                       addCharacteristic();
                     }
                   }}
-                  className="input-field"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
                   placeholder="e.g., Friendly, House-trained, Good with kids"
                 />
                 <button
                   type="button"
                   onClick={addCharacteristic}
-                  className="btn-outline px-4"
+                  className="px-6 py-2 border border-amber-700 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors"
                 >
                   Add
                 </button>
@@ -374,13 +378,13 @@ const AddPet = () => {
                 {formData.characteristics.map((char, index) => (
                   <span
                     key={index}
-                    className="px-3 py-1 bg-rust-100 text-rust-700 rounded-full text-sm font-medium flex items-center gap-2"
+                    className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium flex items-center gap-2"
                   >
                     {char}
                     <button
                       type="button"
                       onClick={() => removeCharacteristic(char)}
-                      className="text-rust-600 hover:text-rust-800"
+                      className="text-amber-600 hover:text-amber-800"
                     >
                       ×
                     </button>
@@ -389,7 +393,7 @@ const AddPet = () => {
               </div>
             </div>
 
-            {/* Location and Adoption Details */}
+            {/* Location */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -401,7 +405,7 @@ const AddPet = () => {
                   value={formData.city}
                   onChange={handleInputChange}
                   required
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
                   placeholder="City"
                 />
               </div>
@@ -416,41 +420,9 @@ const AddPet = () => {
                   value={formData.state}
                   onChange={handleInputChange}
                   required
-                  className="input-field"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent outline-none"
                   placeholder="State"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Adoption Fee ($)
-                </label>
-                <input
-                  type="number"
-                  name="adoptionFee"
-                  value={formData.adoptionFee}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="0.01"
-                  className="input-field"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Adoption Status
-                </label>
-                <select
-                  name="adoptionStatus"
-                  value={formData.adoptionStatus}
-                  onChange={handleInputChange}
-                  className="input-field"
-                >
-                  <option value="available">Available</option>
-                  <option value="pending">Pending</option>
-                  <option value="adopted">Adopted</option>
-                </select>
               </div>
             </div>
 
@@ -458,25 +430,18 @@ const AddPet = () => {
             <div className="flex gap-4 pt-4">
               <button
                 type="button"
-                onClick={() => navigate('/dashboard')}
-                className="btn-outline flex-1"
+                onClick={() => navigate('/browse')}
+                className="flex-1 px-6 py-2 border border-amber-700 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors font-medium"
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="btn-primary flex-1"
+                className="flex-1 px-6 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition-colors font-medium disabled:opacity-50"
                 disabled={loading}
               >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loading />
-                    Adding Pet...
-                  </span>
-                ) : (
-                  'Add Pet'
-                )}
+                {loading ? 'Adding Pet...' : 'Add Pet'}
               </button>
             </div>
           </form>

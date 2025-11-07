@@ -10,11 +10,11 @@ const api = axios.create({
   },
 });
 
-// Add user ID to requests if logged in
+// Add auth token to requests if logged in
 api.interceptors.request.use((config) => {
-  const user = JSON.parse(localStorage.getItem('pawconnect_user') || 'null');
-  if (user?.userId) {
-    config.headers['x-user-id'] = user.userId;
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -23,7 +23,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message || 'An error occurred';
+    console.error('API Error:', error.response?.data || error.message);
+    const message = error.response?.data?.message || error.message || 'An error occurred';
     return Promise.reject({ message, status: error.response?.status });
   }
 );
@@ -38,22 +39,45 @@ export const authAPI = {
 
 // ===== PETS API =====
 export const petsAPI = {
-  getAll: (params) => api.get('/pets', { params }),
+  // Get all pets with filters
+  getAll: (params) => {
+    // Filter out undefined/empty values
+    const cleanParams = Object.fromEntries(
+      Object.entries(params || {}).filter(([, v]) => v !== undefined && v !== null && v !== '')
+    );
+    return api.get('/pets', { params: cleanParams });
+  },
+
+  // Search pets
   search: (query) => api.get('/pets/search', { params: { query } }),
+
+  // Get single pet
   getById: (petId) => api.get(`/pets/${petId}`),
+
+  // Get similar pets
   getSimilar: (petId) => api.get(`/pets/${petId}/similar`),
+
+  // Get featured pets
   getFeatured: (limit = 6) => api.get('/pets/featured', { params: { limit } }),
+
+  // Get pets by shelter
   getByShelter: (shelterId) => api.get(`/pets/by-shelter/${shelterId}`),
+
+  // Create pet (no auth required for now)
   create: (formData) => {
     return api.post('/pets', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  // Update pet
   update: (petId, formData) => {
     return api.put(`/pets/${petId}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  // Delete pet
   delete: (petId) => api.delete(`/pets/${petId}`),
 };
 
@@ -79,10 +103,10 @@ export const usersAPI = {
     });
   },
   getById: (userId) => api.get(`/users/${userId}`),
-  addFavorite: (petId) => api.post(`/users/favorites/${petId}`),
-  removeFavorite: (petId) => api.delete(`/users/favorites/${petId}`),
-  getFavorites: () => api.get('/users/favorites'),
-  getFavoritePets: () => api.get('/users/favorites/pets'),
+  addFavorite: (petId) => api.post(`/favorites/${petId}`),
+  removeFavorite: (petId) => api.delete(`/favorites/${petId}`),
+  getFavorites: () => api.get('/favorites'),
+  getFavoritePets: () => api.get('/favorites/pets'),
 };
 
 // ===== SHELTERS API =====

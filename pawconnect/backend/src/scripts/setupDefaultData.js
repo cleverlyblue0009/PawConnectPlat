@@ -208,7 +208,7 @@ async function addDefaultPets(shelterId) {
       images: ['https://images.unsplash.com/photo-1529778873920-4da4926a72c2?w=800'],
     },
     {
-      name: 'Luna',
+      name: 'Luna Cat',
       breed: 'Persian',
       species: 'cat',
       age: 5,
@@ -264,6 +264,20 @@ async function addDefaultPets(shelterId) {
       state: 'Tennessee',
       images: ['https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800'],
     },
+    {
+      name: 'Cocoa',
+      breed: 'Cockatiel',
+      species: 'other',
+      age: 3,
+      weight: 0.1,
+      gender: 'male',
+      description: 'Cocoa is a friendly and vocal cockatiel who loves to whistle and interact with his humans. He enjoys perching on shoulders and can live 15+ years. Cocoa needs daily attention and mental stimulation. He is cage-trained and ready for an attentive family.',
+      shortDescription: 'Friendly vocal cockatiel who loves interaction.',
+      characteristics: ['Vocal', 'Social', 'Long-lived', 'Needs attention', 'Affectionate'],
+      city: 'San Antonio',
+      state: 'Texas',
+      images: ['https://images.unsplash.com/photo-1444464666175-1cff94d85d41?w=800'],
+    },
   ];
 
   let successCount = 0;
@@ -310,12 +324,23 @@ async function setupDefaultData() {
     await addDefaultPets(shelterId);
     
     console.log('\n✓ Default data setup complete!');
-    process.exit(0);
   } catch (error) {
     console.error('\n✗ Error setting up default data:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
-// Run the script
-setupDefaultData();
+// Export for use in other files
+module.exports = { setupDefaultData };
+
+// Run if executed directly
+if (require.main === module) {
+  setupDefaultData()
+    .then(() => {
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Fatal error:', error);
+      process.exit(1);
+    });
+}
