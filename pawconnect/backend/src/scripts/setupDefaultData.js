@@ -301,21 +301,55 @@ async function addDefaultPets(shelterId) {
   console.log(`Failed: ${errorCount} pets`);
 }
 
+// Check if pets already exist
+async function checkIfPetsExist() {
+  try {
+    const scanCommand = new ScanCommand({
+      TableName: TABLES.PETS,
+      Limit: 1,
+    });
+    
+    const result = await docClient.send(scanCommand);
+    return result.Items && result.Items.length > 0;
+  } catch (error) {
+    console.error('Error checking for existing pets:', error.message);
+    return false;
+  }
+}
+
 // Main function
 async function setupDefaultData() {
-  console.log('=== Setting up default data for PawConnect ===\n');
+  console.log('🔍 Checking if default data setup is needed...\n');
   
   try {
+    // Check if pets already exist
+    const petsExist = await checkIfPetsExist();
+    if (petsExist) {
+      console.log('✓ Pets already exist in database. Skipping seed.\n');
+      return { success: true, skipped: true, message: 'Data already exists' };
+    }
+    
+    console.log('📦 Setting up default data for PawConnect...\n');
     const shelterId = await createDefaultShelter();
     await addDefaultPets(shelterId);
     
     console.log('\n✓ Default data setup complete!');
-    process.exit(0);
+    return { success: true, skipped: false, shelterId };
   } catch (error) {
-    console.error('\n✗ Error setting up default data:', error);
-    process.exit(1);
+    console.error('\n✗ Error setting up default data:', error.message);
+    return { success: false, error: error.message };
   }
 }
 
-// Run the script
-setupDefaultData();
+// Export for use in other modules
+module.exports = { setupDefaultData, createDefaultShelter, addDefaultPets };
+
+// Run the script if executed directly
+if (require.main === module) {
+  setupDefaultData().then(() => {
+    process.exit(0);
+  }).catch((error) => {
+    console.error('Setup failed:', error);
+    process.exit(1);
+  });
+}

@@ -37,28 +37,33 @@ S3_BUCKET_NAME=pawconnect-images-12345  # Your actual bucket name
 ```bash
 cd /workspace/pawconnect/backend
 pkill -f "node src/index.js"
-PORT=3000 npm start &
+npm run dev
 ```
 
-### Step 4: Seed Default Pets
+### Step 4: Automatic Seeding! 🎉
 
-Once credentials are configured, run this in your browser console (F12):
+**NEW: The backend now auto-seeds pets on startup!**
 
-```javascript
-const user = JSON.parse(localStorage.getItem('pawconnect_user'));
-fetch('http://localhost:3000/api/seed/default-pets', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-user-id': user.userId
-  }
-})
-.then(r => r.json())
-.then(data => console.log('✅ Seeded:', data))
-.catch(err => console.error('❌ Error:', err));
+Once you configure AWS credentials and start the server, it will automatically:
+1. ✅ Check if pets exist in the database
+2. ✅ Create a default shelter if needed
+3. ✅ Add 14 default pets (7 dogs, 5 cats, 2 other pets)
+4. ✅ Skip seeding if data already exists
+
+You'll see output like:
+```
+🌱 Auto-seeding default data...
+✓ Added: Max (dog) - San Francisco, California
+✓ Added: Bella (dog) - Los Angeles, California
+... (12 more pets)
+
+🎉 Successfully seeded 14 default pets!
+👉 Visit http://localhost:5173/find-pets to see them!
 ```
 
-This will add 14 default pets (7 dogs, 5 cats, 2 other pets) to your database!
+**No manual seeding required!** Just configure AWS and run `npm run dev`.
+
+See `AUTO_SEED_GUIDE.md` for detailed information.
 
 ---
 
